@@ -1,4 +1,7 @@
 # pixel-algorithms 🧩
+
+**[pixels.lucasmsa.com](https://pixels.lucasmsa.com)**
+
 > Grid algorithms you can scrub through, frame by frame. Paint walls, drag start and goal, pick an algorithm, then step through every expansion, fill, pixel or contour segment. The default map is a robot floor plan: walls are inflated by the robot radius before the search runs.
 
 This is the web home of [a-star-visualizer](https://github.com/lucasmsa/a-star-visualizer), the 2021 Python project. That repo stays as the reference implementation and produces the golden fixtures this port is tested against.
@@ -52,7 +55,7 @@ pnpm typecheck
 
 ## Deploying 🚀
 
-Vite static build, `vercel.json` included. Deploy from the personal Vercel account and attach `pixels.lucasmsa.com`.
+Live at [pixels.lucasmsa.com](https://pixels.lucasmsa.com). Vite static build on Vercel, `vercel.json` included.
 
 ```sh
 pnpm build   # dist/
