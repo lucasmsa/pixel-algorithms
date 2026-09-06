@@ -39,9 +39,16 @@ export function replay(grid: Grid, frames: readonly Frame[], playhead: number, h
   const idx = (x: number, y: number) => y * grid.width + x;
   const upto = Math.min(playhead, frames.length);
   let previousCurrent: Frame['current'] = null;
+  // What the cursor covered up. A search leaves a visited cell behind it, but a
+  // dither has already painted the cell the cursor sits on, and demoting that to
+  // visited drew a magenta stripe down the edge of the picture.
+  let coveredByCurrent: number = CELL.free;
   for (let i = 0; i < upto; i++) {
     const f = frames[i]!;
-    if (previousCurrent && cells[idx(previousCurrent.x, previousCurrent.y)] === CELL.current) cells[idx(previousCurrent.x, previousCurrent.y)] = CELL.closed;
+    if (previousCurrent && cells[idx(previousCurrent.x, previousCurrent.y)] === CELL.current) {
+      const painted = coveredByCurrent === CELL.ink || coveredByCurrent === CELL.paper;
+      cells[idx(previousCurrent.x, previousCurrent.y)] = painted ? coveredByCurrent : CELL.closed;
+    }
     for (const p of f.opened) {
       if (cells[idx(p.x, p.y)] === CELL.free) openCount++;
       cells[idx(p.x, p.y)] = CELL.open;
@@ -58,6 +65,7 @@ export function replay(grid: Grid, frames: readonly Frame[], playhead: number, h
     }
     if (f.segments.length) segments.push(...f.segments);
     if (f.current) {
+      coveredByCurrent = cells[idx(f.current.x, f.current.y)]!;
       cells[idx(f.current.x, f.current.y)] = CELL.current;
       previousCurrent = f.current;
     }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gridFromStrings } from '../core/grid';
-import { collectFrames } from '../core/frame';
+import { collectFrames, frame } from '../core/frame';
 import { astar } from '../core/search/astar';
 import { CELL, replay } from './replay';
 import openRoom from '../core/__fixtures__/open_room.json';
@@ -30,5 +30,21 @@ describe('replay', () => {
     expect(Array.from(pic.cells).filter((c) => c === CELL.current)).toHaveLength(1);
     expect(pic.openCount).toBeGreaterThan(0);
     expect(pic.closedCount).toBe(5);
+  });
+
+  it('leaves a painted cell painted after the cursor moves off it', () => {
+    const blank = gridFromStrings(['....', '....']);
+    const frames = [
+      frame({ current: { x: 0, y: 0 }, painted: [{ x: 0, y: 0, value: 1 }] }),
+      frame({ current: { x: 0, y: 1 }, painted: [{ x: 0, y: 1, value: 1 }], done: true }),
+    ];
+    const pic = replay(blank, frames, frames.length);
+    expect(pic.cells[0]).toBe(CELL.ink);
+    expect(pic.cells[4]).toBe(CELL.current);
+  });
+
+  it('still leaves a visited cell behind a search cursor', () => {
+    const pic = replay(grid, frames, 5);
+    expect(Array.from(pic.cells).filter((c) => c === CELL.closed).length).toBeGreaterThan(0);
   });
 });
