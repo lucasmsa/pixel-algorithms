@@ -33,15 +33,15 @@ Searches share one rule set: orthogonal steps cost 1, diagonals cost √2 and ne
 
 With the defaults (radius 7, 8 cells per block) the shipped `mapa_robotica.png` (450×360) becomes the same 72×56 grid with 1,912 walls that the Python reference builds. A* from (6, 6) to (66, 50) finds a 94-cell path of cost 103.36 after expanding 1,284 cells, in both.
 
-The dither algorithms run on the imported grayscale, and "use as map" turns the ink into walls so you can search across a dithered photo.
+The dither algorithms run on the imported grayscale, so they stay disabled until you import an image: the shipped plan is a map, and dithering it only scatters the walls. "Use as map" turns the ink into walls so you can search across a dithered photo.
 
 ## Running it 🔧
 
 ```sh
 pnpm install
 pnpm dev          # http://localhost:5173
-pnpm test         # 34 unit tests (vitest)
-pnpm test:e2e     # 4 Playwright flows against a production build
+pnpm test         # 40 unit tests (vitest)
+pnpm test:e2e     # 5 Playwright flows against a production build
 pnpm typecheck
 ```
 
