@@ -16,6 +16,13 @@ const CELL_COLOR: Record<number, string> = {
   [CELL.paper]: palette.paper,
 };
 
+/**
+ * A dither is a picture, so its ink is the ink colour. Everything else that
+ * paints is drawing on top of a map, and `palette.ink` is `palette.wall`, so in
+ * the ink colour a line, a circle or a fill was indistinguishable from walls.
+ */
+const inkColorFor = (group: string) => (group === 'dither' ? palette.ink : palette.frontier);
+
 export interface RendererState {
   readonly canvasRef: RefObject<HTMLCanvasElement | null>;
   readonly stageRef: RefObject<HTMLDivElement | null>;
@@ -65,7 +72,7 @@ export function useCanvasRenderer(): RendererState {
     canvas.style.height = `${h}px`;
     const ctx = canvas.getContext('2d')!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    paint(ctx, grid.width, grid.height, cellPx, picture, start, goal, drag, meta.group !== 'dither' && meta.group !== 'contour' ? 'markers' : 'none');
+    paint(ctx, grid.width, grid.height, cellPx, picture, start, goal, drag, meta.group !== 'dither' && meta.group !== 'contour' ? 'markers' : 'none', inkColorFor(meta.group));
   }, [grid.width, grid.height, cellPx, picture, start, goal, drag, meta.group]);
 
   return { canvasRef, stageRef, cellPx, picture };
@@ -81,6 +88,7 @@ function paint(
   goal: Point,
   drag: DragPreview | null,
   markers: 'markers' | 'none',
+  inkColor: string,
 ) {
   ctx.fillStyle = palette.paper;
   ctx.fillRect(0, 0, cols * cell, rows * cell);
@@ -88,7 +96,7 @@ function paint(
     for (let x = 0; x < cols; x++) {
       const state = picture.cells[y * cols + x]!;
       if (state === CELL.free || state === CELL.paper) continue;
-      ctx.fillStyle = CELL_COLOR[state] ?? palette.ink;
+      ctx.fillStyle = state === CELL.ink ? inkColor : (CELL_COLOR[state] ?? palette.ink);
       ctx.fillRect(x * cell, y * cell, cell, cell);
     }
   }

@@ -3,7 +3,7 @@ import { palette } from '../config/palette';
 const ITEMS = [
   { color: palette.wall, label: 'wall' },
   { color: palette.frontierSoft, label: 'open (frontier)' },
-  { color: palette.frontier, label: 'expanded' },
+  { color: palette.frontier, label: 'expanded / drawn' },
   { color: palette.current, label: 'current' },
   { color: palette.path, label: 'path / contour' },
   { color: palette.start, label: 'S start' },
