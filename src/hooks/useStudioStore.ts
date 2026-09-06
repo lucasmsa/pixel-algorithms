@@ -7,7 +7,7 @@ import { floorPlanToGrid } from '../core/image/floorPlan';
 import type { GrayImage } from '../core/image/gray';
 import { runAlgorithm } from '../core/run';
 import type { Connectivity, HeuristicName, Point } from '../core/types';
-import { nearestFreeCell } from '../utils/cells';
+import { centreThatFits, nearestFreeCell } from '../utils/cells';
 import mapaRobotica from '../core/__fixtures__/mapa_robotica.json';
 
 export type Tool = 'wall' | 'erase';
@@ -39,6 +39,8 @@ export interface StudioState {
   robotRadius: number;
   cellsPerBlock: number;
   plan: SourcePlan | null;
+  /** True while the only plan loaded is the one that ships with the app. */
+  planIsDefault: boolean;
   tool: Tool;
   drag: DragPreview | null;
   frames: Frame[];
@@ -70,16 +72,28 @@ export interface StudioState {
 
 const initialGrid = gridFromStrings(mapaRobotica.grid);
 
-type Inputs = Pick<StudioState, 'algorithm' | 'grid' | 'start' | 'goal' | 'heuristic' | 'connectivity' | 'weight' | 'radius' | 'bayer' | 'plan'>;
+type Inputs = Pick<StudioState, 'algorithm' | 'grid' | 'start' | 'goal' | 'heuristic' | 'connectivity' | 'weight' | 'radius' | 'bayer' | 'plan' | 'planIsDefault'>;
 
+// The shipped floor plan is a map, not something anyone asked to dither. Passing
+// it as the dither source turned the walls into scattered dots and read as a bug.
 const compute = (s: Inputs): Frame[] =>
-  runAlgorithm({ ...s, image: s.plan?.gray ?? null });
+  runAlgorithm({ ...s, image: s.planIsDefault ? null : (s.plan?.gray ?? null) });
 
-/** Recompute frames and show the finished picture; play restarts from frame 0. */
+/**
+ * Recompute frames and show the finished picture. Editing a wall or a parameter
+ * is a comparison, so the result is what you want on screen straight away.
+ */
 const withFrames = (s: Inputs & Partial<StudioState>): Partial<StudioState> => {
   const frames = compute(s);
   return { ...s, frames, playhead: frames.length, playing: false };
 };
+
+/** Picking an algorithm is a request to watch it, so it rewinds and runs. */
+const withRun = (s: Inputs & Partial<StudioState>): Partial<StudioState> => ({
+  ...withFrames(s),
+  playhead: 0,
+  playing: true,
+});
 
 function rebuildFromPlan(plan: SourcePlan, robotRadius: number, cellsPerBlock: number, start: Point, goal: Point) {
   const grid = floorPlanToGrid(plan.walls, plan.width, plan.height, { robotRadius, resolution: PLAN_RESOLUTION, cellsPerBlock });
@@ -95,9 +109,10 @@ export const useStudioStore = create<StudioState>((set, get) => {
     heuristic: 'octile' as HeuristicName,
     connectivity: 8 as Connectivity,
     weight: 1,
-    radius: 6,
+    radius: 18,
     bayer: 4 as const,
     plan: null,
+    planIsDefault: true,
   };
   const frames = compute(base);
   return {
@@ -107,11 +122,17 @@ export const useStudioStore = create<StudioState>((set, get) => {
     tool: 'wall',
     drag: null,
     frames,
-    playhead: frames.length,
-    playing: false,
+    // The page opens mid-run for the same reason picking an algorithm does: the
+    // frames are the point, and a finished picture hides them.
+    playhead: 0,
+    playing: true,
     speed: SPEED_OPTIONS[2],
 
-    setAlgorithm: (algorithm) => set(withFrames({ ...get(), algorithm })),
+    setAlgorithm: (algorithm) => {
+      const s = get();
+      const start = algorithm === 'midpointCircle' ? centreThatFits(s.grid, s.start, s.radius) : s.start;
+      set(withRun({ ...s, algorithm, start }));
+    },
     setHeuristic: (heuristic) => set(withFrames({ ...get(), heuristic })),
     setConnectivity: (connectivity) => set(withFrames({ ...get(), connectivity })),
     setWeight: (weight) => set(withFrames({ ...get(), weight })),
@@ -136,7 +157,10 @@ export const useStudioStore = create<StudioState>((set, get) => {
       const preferredStart = isDefault ? DEFAULT_START : { x: 0, y: 0 };
       const rebuilt = rebuildFromPlan(plan, s.robotRadius, s.cellsPerBlock, preferredStart, isDefault ? DEFAULT_GOAL : { x: 1_000_000, y: 1_000_000 });
       const goal = isDefault ? rebuilt.goal : nearestFreeCell(rebuilt.grid, { x: rebuilt.grid.width - 1, y: rebuilt.grid.height - 1 });
-      set(withFrames({ ...s, plan, grid: rebuilt.grid, start: rebuilt.start, goal }));
+      // The shipped plan arrives one fetch after boot, so it has to run rather
+      // than settle, or the page lands on a finished picture every time.
+      const next = { ...s, plan, planIsDefault: isDefault, grid: rebuilt.grid, start: rebuilt.start, goal };
+      set(isDefault ? withRun(next) : withFrames(next));
     },
     setRobotRadius: (robotRadius) => {
       const s = get();
