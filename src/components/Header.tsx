@@ -10,6 +10,7 @@ export function Header() {
         </p>
       </div>
       <nav>
+        <a href="https://lucasmsa.com" rel="author">by lucasmsa</a>
         <a href="https://github.com/lucasmsa/pixel-algorithms">source</a>
         <a href="https://github.com/lucasmsa/a-star-visualizer">python reference</a>
       </nav>
